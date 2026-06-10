@@ -17,8 +17,10 @@ class PaymentController extends Controller
         // Simulate processing delay
         sleep(2);
 
+        $formattedAmount = (float) $validated['amount'];
+
         return response()->json([
-            'message' => "Charged {$validated['amount']} {$validated['currency']}",
+            'message' => "Charged {$formattedAmount} {$validated['currency']}",
             'transaction_id' => Str::uuid()->toString(),
         ], 201);
     }
