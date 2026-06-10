@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'idempotent' => \App\Http\Middleware\IdempotencyMiddleware::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'process-payment',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
