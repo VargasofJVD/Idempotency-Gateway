@@ -11,41 +11,24 @@ This project was built as a take-home assessment, demonstrating core backend con
 The core of this application is the `IdempotencyMiddleware`. Here is a visual representation of how a request flows through the system:
 
 ```mermaid
-sequenceDiagram
-    participant Client
-    participant Middleware as Idempotency Middleware
-    participant Database as SQLite Database
-    participant Controller as Payment Controller
-
-    Client->>Middleware: POST /process-payment (Idempotency-Key)
-    
-    alt Missing Header
-        Middleware-->>Client: 400 Bad Request
-    end
-
-    Middleware->>Database: Lookup Key
-    
-    alt Key Not Found (New Request)
-        Middleware->>Database: Insert (Status: processing, Expires: 24h)
-        Middleware->>Controller: Forward Request
-        Controller-->>Middleware: 201 Created (Payment Processed)
-        Middleware->>Database: Update (Status: complete, Save Response)
-        Middleware-->>Client: 201 Created
-    else Key Found (Hash Mismatch)
-        Middleware-->>Client: 422 Unprocessable Entity (Fraud/Conflict)
-    else Key Found (Status: complete)
-        Middleware->>Database: Fetch Saved Response
-        Middleware-->>Client: Cached Response + X-Cache-Hit: true
-    else Key Found (Status: processing)
-        loop Poll Database (Max 10s)
-            Middleware->>Database: Check Status
-        end
-        alt Status becomes complete
-            Middleware-->>Client: Cached Response + X-Cache-Hit: true
-        else Timeout
-            Middleware-->>Client: 409 Conflict (Timeout)
-        end
-    end
+flowchart TD
+    A([POST /process-payment]) --> B{Idempotency-Key\npresent?}
+    B -- No --> C[Return 400 Bad Request]
+    B -- Yes --> D[Compute SHA-256\nbody hash]
+    D --> E{Does key\nexist in DB?}
+    E -- No --> F[Store key as 'processing'\nwith 24h expiry]
+    F --> G[Forward to Payment Controller]
+    G --> H[Simulate 2s processing]
+    H --> I[Save response + mark 'complete']
+    I --> J([Return 201 Created])
+    E -- Yes --> K{Does hash\nmatch?}
+    K -- No --> L[Return 422\nUnprocessable Entity]
+    K -- Yes --> M{Status\ncomplete?}
+    M -- Yes --> N[Return cached response\nX-Cache-Hit: true]
+    M -- No, processing --> O[Poll DB every 1s\nmax 10s]
+    O --> P{Completed\nin time?}
+    P -- Yes --> N
+    P -- No --> Q[Return 409 Conflict\nTimeout]
 ```
 
 ---
