@@ -30,12 +30,18 @@ class IdempotencyMiddleware
         while ($waited < $maxWaitSeconds) {
             $record = \App\Models\IdempotencyRecord::where('idempotency_key', $idempotencyKey)->first();
 
+            if ($record && $record->expires_at && $record->expires_at->isPast()) {
+                $record->delete();
+                $record = null; // Treat as if it was not found
+            }
+
             if (! $record) {
                 // Scenario A: Not found - insert and process
                 $record = \App\Models\IdempotencyRecord::create([
                     'idempotency_key' => $idempotencyKey,
                     'request_body_hash' => $requestBodyHash,
                     'status' => 'processing',
+                    'expires_at' => now()->addHours(24),
                 ]);
 
                 // Allow request to pass to the controller

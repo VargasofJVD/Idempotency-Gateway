@@ -12,12 +12,14 @@ class IdempotencyRecord extends Model
         'response_body',
         'response_status',
         'status',
+        'expires_at',
     ];
 
     protected function casts(): array
     {
         return [
             'response_body' => 'array',
+            'expires_at' => 'datetime',
         ];
     }
 }
